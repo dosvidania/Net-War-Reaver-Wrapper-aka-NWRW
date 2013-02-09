@@ -1,7 +1,12 @@
 ::::: Net-War Reaver Wrapper aka NWRW :::::
-      The Noob Wlan WPS Hacking Tool  
-       Sven Wurth - dos\@net-war.de
-          License: GPL (v2 only)
+
+A Noob Wlan WPS Hacking Tool  
+
+Sven Wurth - dos\@net-war.de
+
+License: GPL (v2 only)
+
+
 
 This Tool is a wrapper for the reaver WPS Attacking Toolkit
 

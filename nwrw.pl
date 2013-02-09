@@ -540,7 +540,7 @@ sub LOGR{
 		elsif ($_ =~ /WARNING: Detected AP rate limiting, waiting 60 seconds before re-checking/) {
 			if ($ap_rate_limit < 10) {
 				print "\n::::: fount too much 'AP rate limiting'";
-				die;
+				last;
 			}
 			$ap_rate_limit++;
 			killall();

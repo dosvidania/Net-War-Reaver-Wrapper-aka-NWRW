@@ -44,7 +44,10 @@ REQUIREMENTS:
 -BT5r3
 
 -Currently this tools only supports the rtl8187 device "alfa awuss036h"
+
 (this is a cheap and great USB Wlan device, if you successfully tried other devices, please let me know)
 
+
 INSTALL DOKU:
+
 aptitude install reaver

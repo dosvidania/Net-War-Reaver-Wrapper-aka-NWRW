@@ -225,13 +225,6 @@ foreach (@attackable) {
 	print"\n -----> $_ ";
 }
 
-print "\nEnter to continue ...";
-my $ok = <>; # ask for user input
-if ( $ok == ""){
-}
-else{
-die;
-}
 
 #attack the hackable networks
 foreach $current_bssid ( @attackable ){
